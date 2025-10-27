@@ -17,14 +17,14 @@ namespace Server
 
         TcpListener listener;
         ConcurrentDictionary<TcpClient, DateTime> clients;//DateTime will hold timestamps of when the server last heard from the client its for checking connection lost
-        Dictionary<TcpClient, SemaphoreSlim> writeLocks;//need locks on the write stream because two loops could access it concurrently: heartbeat loop and response loop(echoing back)
+        ConcurrentDictionary<TcpClient, SemaphoreSlim> writeLocks;//need locks on the write stream because two loops could access it concurrently: heartbeat loop and response loop(echoing back)
 
         public Server(Int32 port)
         {
             IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Any, port);
             listener = new TcpListener(serverEndPoint);
             clients = new ConcurrentDictionary<TcpClient, DateTime>();
-            writeLocks = new Dictionary<TcpClient, SemaphoreSlim>();
+            writeLocks = new ConcurrentDictionary<TcpClient, SemaphoreSlim>();
         }
         public async Task Start()
         {
@@ -116,6 +116,7 @@ namespace Server
             if (success)
             {
                 //if check necessary for not to print client disconnected multiple times to the console
+                writeLocks.TryRemove(client, out _);
                 Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint?.ToString()}");
                 client.Close();
             }
